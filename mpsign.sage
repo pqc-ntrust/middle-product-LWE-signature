@@ -2,6 +2,8 @@
 
 from hashlib import sha256
 from sage.stats.distributions.discrete_gaussian_integer import DiscreteGaussianDistributionIntegerSampler
+import time
+from time33 import *
 
 # this section defines public parameters.
 n = 2500
@@ -200,35 +202,57 @@ for i in range(10):
 # expecting a repeatation rate of 3
 print total/1000
 
+# get the min, med, max, average of the list
+def get_data(list):
+    R = RealField(20)
+    list.sort()
+    v = vector(list)
+    v = v.change_ring(R)
+    length = v.length()
+    sum = 0
+    for e in v:
+        sum +=e
+    ave = sum/length
+    med = (length - 1)//2
+    return v[0], v[med], v[length-1], R(ave)
 
 
+iter_num = 1001
 
-keygen_time = time.clock()
-for i in range(100):
-    _ = keygen()
-keygen_time = time.clock() - keygen_time
-print keygen_time
+keygen_time_list = []
+num_RS_list = []
+# keygen_cycle_list = []
+sign_time_list = []
+verify_time_list = []
 
-total = 0
-sig_list = []
-pk_list = []
-sign_time = time.clock()
-for i in range(100):
+
+for i in range(iter_num):
+    # keygen_cycle_one_run = process_time()
+    keygen_time_one_run = time.clock()
     (pk, sk) = keygen()
+    keygen_time_one_run = time.clock() - keygen_time_one_run
+    # keygen_cycle_one_run = process_time() - keygen_cycle_one_run
+    keygen_time_list.append(keygen_time_one_run)
+    # keygen_cycle_list.append(keygen_cycle_one_run)
+
+    sign_time_one_run = time.clock()
     sig = sign(sk, "message to sign"+ZZ(i).str())
-    sig_list.append(sig)
-    pk_list.append(pk)
-sign_time = time.clock() - sign_time
+    sign_time_one_run =  time.clock() - sign_time_one_run
+    sign_time_list.append(sign_time_one_run)
 
-print sign_time
-
-ver_time = time.clock()
-for i in range(100):
-    ver = verify(pk_list[i],  "message to sign"+ZZ(i).str(), sig_list[i])
-#    print ver
-ver_time = time.clock() -  ver_time
+    verify_time_one_run = time.clock()
+    ver = verify(pk,  "message to sign"+ZZ(i).str(), sig)
+    verify_time_one_run = time.clock() - verify_time_one_run
+    verify_time_list.append(verify_time_one_run)
+    
+    num_RS_list.append(sig[3])
 
 
-for i in range(100):
-    total += sig_list[i][3]
-print ver_time, RR(total/100)
+tmp = get_data(keygen_time_list)
+print "key gen --- min:", tmp[0], "med:", tmp[1], "max:", tmp[2], "ave:", tmp[3]
+tmp = get_data(sign_time_list)
+print "sign    --- min:", tmp[0], "med:", tmp[1], "max:", tmp[2], "ave:", tmp[3]
+tmp = get_data(num_RS_list)
+print "# RS    --- min:", tmp[0], "med:", tmp[1], "max:", tmp[2], "ave:", tmp[3]
+tmp = get_data(verify_time_list)
+print "verify  --- min:", tmp[0], "med:", tmp[1], "max:", tmp[2], "ave:", tmp[3]
